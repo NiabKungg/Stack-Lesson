@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บทเรียนที่ 4: Stack (สแต็ก)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Sarabun', 'sans-serif'],
+                        mono: ['Consolas', 'Monaco', 'monospace'],
+                    },
+                    colors: {
+                        primary: '#f59e0b', // Amber 500
+                        primaryDark: '#d97706', // Amber 600
+                        secondary: '#ef4444', // Red 500
+                        dark: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #fffbeb; color: #334155; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.1), 0 8px 10px -6px rgba(245, 158, 11, 0.1);
+        }
+        .code-block {
+            background-color: #1e1e2f;
+            color: #f8fafc;
+            font-family: 'Consolas', monospace;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            overflow-x: auto;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Fix for one-line issue */
+            tab-size: 4;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        /* Syntax Highlighting */
+        .keyword { color: #c678dd; font-weight: bold; }
+        .type { color: #e5c07b; }
+        .method { color: #61afef; }
+        .string { color: #98c379; }
+        .comment { color: #7f848e; font-style: italic; }
+        .number { color: #d19a66; }
+        .operator { color: #56b6c2; }
+    </style>
+</head>
+<body class="antialiased font-sans leading-relaxed selection:bg-primary selection:text-white pb-20">
+
+    <svg width="0" height="0" class="hidden">
+        <defs>
+            <!-- Marker for arrowheads -->
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+            </marker>
+            <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
+            </marker>
+            
+            <!-- Standard Linked List Node -->
+            <g id="ll-node">
+                <rect x="0" y="0" width="75" height="40" fill="#ffffff" stroke="#f59e0b" stroke-width="2" rx="6"/>
+                <path d="M 50 0 L 50 40" stroke="#f59e0b" stroke-width="2"/>
+                <path d="M 50 0 L 69 0 Q 75 0 75 6 L 75 34 Q 75 40 69 40 L 50 40 Z" fill="#fef3c7"/>
+                <circle cx="62.5" cy="20" r="3.5" fill="#f59e0b"/>
+            </g>
+
+            <!-- Stack Box element -->
+            <g id="stack-box">
+                <rect x="0" y="0" width="60" height="30" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/>
+            </g>
+        </defs>
+    </svg>
+
+    <header class="bg-dark text-white sticky top-0 z-50 shadow-lg border-b-4 border-primary">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-layer-group text-2xl text-primary"></i>
+                <h1 class="text-xl font-bold tracking-tight">Data Structures & Algorithms</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium shadow-sm">Chapter 05</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 space-y-10">
+
+        <!-- Title Section -->
+        <div class="text-center space-y-4 mb-12">
+            <h2 class="text-3xl md:text-5xl font-extrabold text-dark tracking-tight">บทเรียนที่ 4: Stack (สแต็ก)</h2>
+            <p class="text-lg text-slate-500 max-w-3xl mx-auto">โครงสร้างข้อมูลแบบ <strong class="text-primaryDark">LIFO (Last In, First Out)</strong> เข้าหลังสุดแต่ออกก่อนสุด และการประยุกต์ใช้งานในโลกความจริง</p>
+        </div>
+
+        <section class="glass-panel rounded-2xl p-6 md:p-8 relative overflow-hidden">
+            <div class="absolute top-0 right-0 bg-primary/10 w-64 h-64 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+            
+            <h3 class="text-2xl font-bold text-dark mb-4 flex items-center gap-3">
+                <div class="bg-primary/20 p-2 rounded-lg text-primaryDark"><i class="fa-solid fa-cubes-stacked"></i></div>
+                1. แนวคิดพื้นฐานของ Stack (LIFO)
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <p class="mb-4 text-slate-700"><strong>Stack</strong> คือโครงสร้างข้อมูลที่เปรียบเสมือน <strong>"การซ้อนจาน"</strong> หรือ <strong>"การเก็บหนังสือทับกัน"</strong> ข้อมูลที่ถูกใส่เข้าไปหลังสุด จะถูกหยิบออกมาก่อนเสมอ (Last In, First Out - LIFO)</p>
+                    
+                    <h4 class="font-bold text-dark mt-6 mb-3 border-b-2 border-primary/20 pb-2 inline-block">Core Operations (การทำงานหลัก)</h4>
+                    <ul class="space-y-4 text-slate-600 list-none">
+                        <li class="flex items-start gap-3 bg-white p-3 rounded-lg border border-amber-100 shadow-sm transition hover:shadow-md">
+                            <div class="bg-emerald-100 text-emerald-600 p-2 rounded text-sm"><i class="fa-solid fa-arrow-down"></i></div>
+                            <div>
+                                <strong class="text-dark block font-mono">push(int d)</strong>
+                                วางข้อมูลใหม่ทับลงไปบนสุดของ Stack
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3 bg-white p-3 rounded-lg border border-amber-100 shadow-sm transition hover:shadow-md">
+                            <div class="bg-rose-100 text-rose-600 p-2 rounded text-sm px-2.5"><i class="fa-solid fa-arrow-up"></i></div>
+                            <div>
+                                <strong class="text-dark block font-mono">pop()</strong>
+                                หยิบข้อมูลตัวบนสุดออกไป (และลบออกจาก Stack)
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3 bg-white p-3 rounded-lg border border-amber-100 shadow-sm transition hover:shadow-md">
+                            <div class="bg-blue-100 text-blue-600 p-2 rounded text-sm"><i class="fa-solid fa-eye"></i></div>
+                            <div>
+                                <strong class="text-dark block font-mono">top() / peek()</strong>
+                                ดูข้อมูลตัวบนสุดโดยไม่ต้องหยิบออก (ไม่ลบออกจาก Stack)
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-amber-50 p-6 rounded-xl border border-amber-200 text-center">
+                    <h5 class="text-sm font-bold text-slate-500 mb-4">ภาพประกอบ 1: การทำงานของ LIFO</h5>
+                    <svg viewBox="0 0 300 220" class="w-full max-w-[250px] mx-auto h-auto">
+                        <!-- Container (The Stack) -->
+                        <path d="M 100 60 L 100 200 L 200 200 L 200 60" fill="none" stroke="#64748b" stroke-width="4" stroke-linecap="round"/>
+                        
+                        <!-- Elements inside -->
+                        <use href="#stack-box" x="120" y="160"/>
+                        <text x="150" y="180" font-family="monospace" font-weight="bold" font-size="14" fill="#1e293b" text-anchor="middle">2</text>
+                        
+                        <use href="#stack-box" x="120" y="125"/>
+                        <text x="150" y="145" font-family="monospace" font-weight="bold" font-size="14" fill="#1e293b" text-anchor="middle">5</text>
+                        
+                        <use href="#stack-box" x="120" y="90"/>
+                        <text x="150" y="110" font-family="monospace" font-weight="bold" font-size="14" fill="#1e293b" text-anchor="middle">7</text>
+
+                        <!-- Pointers & Actions -->
+                        <text x="90" y="105" fill="#f59e0b" font-weight="bold" text-anchor="end">top</text>
+                        <line x1="95" y1="100" x2="115" y2="100" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+                        
+                        <!-- Push Action -->
+                        <path d="M 40 40 Q 80 10 120 40" fill="none" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-green)" stroke-dasharray="4"/>
+                        <text x="60" y="25" fill="#10b981" font-weight="bold" font-size="12">push(1)</text>
+
+                        <!-- Pop Action -->
+                        <path d="M 180 40 Q 220 10 260 40" fill="none" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow-red)" stroke-dasharray="4"/>
+                        <text x="240" y="25" fill="#ef4444" font-weight="bold" font-size="12">pop() -> 7</text>
+                    </svg>
+                    <div class="mt-4 bg-white/60 p-3 rounded text-sm text-slate-700">
+                        <span class="text-rose-600 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Stack Overflow:</span> เกิดเมื่อพยายาม push ข้อมูลใส่ Stack ที่เต็มแล้ว
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="space-y-6">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="bg-indigo-100 text-indigo-600 p-2 rounded-lg"><i class="fa-solid fa-code text-xl"></i></div>
+                <h3 class="text-2xl font-bold text-dark">2. การสร้าง Stack: Array vs Linked List</h3>
+            </div>
+            <p class="text-slate-600 mb-6 border-l-4 border-primary pl-4 py-1">กฎเหล็กของการทำ Stack คือ Operation หลักทั้งหมด (push, pop, top) <strong>ต้องทำงานได้ในเวลา <span class="bg-emerald-100 text-emerald-700 px-1 rounded font-mono">O(1)</span> เท่านั้น!</strong></p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Implementation 1: Array -->
+                <div class="glass-panel rounded-2xl p-6 border-t-4 border-t-sky-500 shadow-md">
+                    <h4 class="text-xl font-bold text-dark mb-4 border-b pb-2 flex items-center gap-2"><i class="fa-solid fa-layer-group text-sky-500"></i> MyStackA (Array Implementation)</h4>
+                    <p class="text-sm text-slate-600 mb-4">ใช้ตัวแปร <code>top</code> เป็นตัวเก็บค่า <strong>Index ช่องว่างถัดไป</strong> ที่จะวางข้อมูล (เริ่มต้นที่ 0)</p>
+                    
+                    <div class="space-y-4">
+                        <div class="code-block"><span class="keyword">public class</span> <span class="type">MyStackA</span> {
+    <span class="type">int</span> MAX_SIZE = <span class="number">100</span>;
+    <span class="type">int</span>[] stack = <span class="keyword">new</span> <span class="type">int</span>[MAX_SIZE];
+    <span class="type">int</span> top = <span class="number">0</span>; <span class="comment">// ชี้ไปที่ช่องว่างถัดไป</span>
+
+    <span class="comment">// เอาของใส่ช่องว่าง แล้วขยับ top ขึ้น</span>
+    <span class="keyword">public void</span> <span class="method">push</span>(<span class="type">int</span> d) {
+        stack[top++] = d; 
+    }
+
+    <span class="comment">// ลด top ลงมา 1 ช่อง แล้วเอาค่าในช่องนั้นออก</span>
+    <span class="keyword">public int</span> <span class="method">pop</span>() {
+        <span class="keyword">return</span> stack[--top];
+    }
+
+    <span class="keyword">public int</span> <span class="method">top</span>() { <span class="keyword">return</span> stack[top<span class="operator">-</span><span class="number">1</span>]; }
+    <span class="keyword">public boolean</span> <span class="method">isEmpty</span>() { <span class="keyword">return</span> top <span class="operator">==</span> <span class="number">0</span>; }
+    <span class="keyword">public boolean</span> <span class="method">isFull</span>() { <span class="keyword">return</span> top <span class="operator">==</span> MAX_SIZE; }
+}</div>
+                    </div>
+                </div>
+
+                <!-- Implementation 2: Linked List -->
+                <div class="glass-panel rounded-2xl p-6 border-t-4 border-t-violet-500 shadow-md">
+                    <h4 class="text-xl font-bold text-dark mb-4 border-b pb-2 flex items-center gap-2"><i class="fa-solid fa-link text-violet-500"></i> MyStackL (Linked List Implementation)</h4>
+                    <p class="text-sm text-slate-600 mb-4">ใช้การเพิ่ม/ลบ Node ไว้ที่ <strong>ด้านหัว (head) เสมอ</strong> ซึ่งก็คือ <code>addFirst()</code> และ <code>deleteFirst()</code> ใน Linked List เพราะมันเร็ว <span class="font-mono text-emerald-600">O(1)</span></p>
+                    
+                    <div class="space-y-4">
+                        <div class="code-block"><span class="keyword">public class</span> <span class="type">MyStackL</span> {
+    <span class="type">Node</span> top = <span class="keyword">null</span>; <span class="comment">// ทำหน้าที่เหมือน head</span>
+
+    <span class="comment">// แทรกไว้ด้านหน้าสุด (addFirst)</span>
+    <span class="keyword">public void</span> <span class="method">push</span>(<span class="type">int</span> d) {
+        <span class="type">Node</span> p = <span class="keyword">new</span> <span class="type">Node</span>(d);
+        p.next = top;
+        top = p;
+    }
+
+    <span class="comment">// ลบตัวหน้าสุดออก (deleteFirst)</span>
+    <span class="keyword">public int</span> <span class="method">pop</span>() {
+        <span class="type">int</span> d = top.data;
+        top = top.next;
+        <span class="keyword">return</span> d;
+    }
+
+    <span class="keyword">public int</span> <span class="method">top</span>() { <span class="keyword">return</span> top.data; }
+    <span class="keyword">public boolean</span> <span class="method">isEmpty</span>() { <span class="keyword">return</span> top <span class="operator">==</span> <span class="keyword">null</span>; }
+    <span class="keyword">public boolean</span> <span class="method">isFull</span>() { <span class="keyword">return false</span>; } <span class="comment">// ไม่เคยเต็ม!</span>
+}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 text-center mt-6">
+                <h5 class="text-sm font-bold text-slate-500 mb-4">ภาพประกอบ 2: Linked List Stack (เพิ่มและลบที่ Head เสมอ)</h5>
+                <svg viewBox="0 0 500 120" class="w-full max-w-2xl mx-auto h-auto">
+                    <text x="40" y="65" fill="#f59e0b" font-weight="bold" font-family="sans-serif">top</text>
+                    <line x1="60" y1="60" x2="90" y2="60" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+    
+                    <!-- Node 1 (Top) -->
+                    <use href="#ll-node" x="100" y="40"/>
+                    <text x="125" y="65" font-family="monospace" font-size="16" font-weight="bold" text-anchor="middle" fill="#1e1b4b">7</text>
+                    <line x1="162.5" y1="60" x2="210" y2="60" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+    
+                    <!-- Node 2 -->
+                    <use href="#ll-node" x="220" y="40"/>
+                    <text x="245" y="65" font-family="monospace" font-size="16" font-weight="bold" text-anchor="middle" fill="#1e1b4b">5</text>
+                    <line x1="282.5" y1="60" x2="330" y2="60" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+    
+                    <!-- Node 3 (Bottom) -->
+                    <use href="#ll-node" x="340" y="40"/>
+                    <text x="365" y="65" font-family="monospace" font-size="16" font-weight="bold" text-anchor="middle" fill="#1e1b4b">2</text>
+                    <line x1="402.5" y1="60" x2="450" y2="60" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+    
+                    <text x="475" y="65" font-family="monospace" font-weight="bold" fill="#94a3b8" text-anchor="middle">null</text>
+
+                    <!-- push effect -->
+                    <path d="M 137.5 20 Q 137.5 0 90 20" fill="none" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-green)" stroke-dasharray="4"/>
+                    <text x="80" y="15" fill="#10b981" font-weight="bold" font-size="12">push() เข้าที่นี่</text>
+
+                    <!-- pop effect -->
+                    <path d="M 137.5 100 Q 137.5 120 180 100" fill="none" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow-red)" stroke-dasharray="4"/>
+                    <text x="190" y="115" fill="#ef4444" font-weight="bold" font-size="12">pop() ออกจากที่นี่</text>
+                </svg>
+            </div>
+        </section>
+
+        <section class="glass-panel rounded-2xl p-6 md:p-8">
+            <h3 class="text-2xl font-bold text-dark mb-6 flex items-center gap-3 border-b-2 border-primary/20 pb-3">
+                <div class="bg-primary/20 p-2 rounded-lg text-primaryDark"><i class="fa-solid fa-rocket"></i></div>
+                3. การประยุกต์ใช้งาน Stack (Applications)
+            </h3>
+
+            <!-- App 1: Dec to Bin -->
+            <div class="mb-10">
+                <h4 class="text-lg font-bold text-primaryDark mb-3 flex items-center gap-2"><i class="fa-solid fa-binary"></i> 3.1 การแปลงเลขฐานสิบเป็นฐานสอง (Decimal to Binary)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div>
+                        <p class="text-sm text-slate-600 mb-3">เมื่อเรานำตัวเลขมาหาร 2 ไปเรื่อยๆ และเก็บเศษ (Remainder) ไว้ เศษตัวแรกที่ได้คือบิตสุดท้าย (LSB) ส่วนเศษตัวสุดท้ายที่ได้คือบิตแรก (MSB)</p>
+                        <p class="text-sm text-slate-600 mb-3">คุณสมบัติ <strong>LIFO</strong> ของ Stack จึงตอบโจทย์มาก เพราะเราเก็บเศษเข้า Stack ไปเรื่อยๆ แล้วค่อย <code>pop()</code> ออกมาเรียงกันตอนจบ จะได้เลขฐานสองที่ถูกต้องพอดี!</p>
+                    </div>
+                    <div class="code-block"><span class="keyword">public void</span> <span class="method">printBinary</span>(<span class="type">int</span> decimal) {
+    <span class="type">Stack</span> s = <span class="keyword">new</span> <span class="type">Stack</span>();
+    <span class="keyword">while</span>(decimal <span class="operator">></span> <span class="number">0</span>) {
+        s.push(decimal <span class="operator">%</span> <span class="number">2</span>); <span class="comment">// เก็บเศษ</span>
+        decimal <span class="operator">/=</span> <span class="number">2</span>;        <span class="comment">// หารสอง</span>
+    } 
+    <span class="keyword">while</span>(<span class="operator">!</span>s.isEmpty()) {
+        System.out.print(s.pop()); <span class="comment">// ปริ้นออกแบบย้อนกลับ</span>
+    }
+}</div>
+                </div>
+            </div>
+
+            <!-- App 2: RPN -->
+            <div>
+                <h4 class="text-lg font-bold text-primaryDark mb-3 flex items-center gap-2"><i class="fa-solid fa-calculator"></i> 3.2 การคำนวณ Postfix หรือ Reverse Polish Notation (RPN)</h4>
+                <p class="text-slate-700 mb-4">สมการคณิตศาสตร์ปกติแบบ Infix (เช่น <code>3 + 4 * (7 - 5)</code>) ต้องใช้วงเล็บเพื่อจัดลำดับ แต่ถ้าแปลงเป็น <strong>Postfix (RPN)</strong> เครื่องหมายจะอยู่หลังตัวเลข เช่น <code>3 4 7 5 - * +</code> ซึ่ง <strong>Stack สามารถคำนวณได้ในเวลา O(n) จากซ้ายไปขวาโดยไม่ต้องใช้วงเล็บเลย!</strong></p>
+                
+                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl mb-6">
+                    <h5 class="font-bold text-indigo-900 mb-2">กฎของ RPN Computation:</h5>
+                    <ol class="list-decimal list-inside text-sm text-indigo-800 space-y-1">
+                        <li>อ่าน Token ทีละตัวจากซ้ายไปขวา</li>
+                        <li><strong>ถ้าเป็นตัวเลข:</strong> ให้ <code class="bg-white px-1 rounded font-bold">push()</code> ลง Stack</li>
+                        <li><strong>ถ้าเป็นเครื่องหมาย (Operator):</strong>
+                            <ul class="list-disc list-inside ml-5 mt-1 space-y-1 text-slate-700">
+                                <li>ให้ <code class="bg-white px-1 rounded font-bold">pop()</code> ตัวบนสุดออกมาเก็บไว้ในตัวแปร <strong class="text-rose-500">b</strong> (ตัวหลัง)</li>
+                                <li>ให้ <code class="bg-white px-1 rounded font-bold">pop()</code> ตัวถัดมาออกมาเก็บไว้ในตัวแปร <strong class="text-blue-500">a</strong> (ตัวหน้า)</li>
+                                <li>นำมาคำนวณ <code>a operator b</code> (สำคัญ: a ต้องอยู่หน้า b เสมอเวลาลบหรือหาร)</li>
+                                <li>นำผลลัพธ์ที่ได้ <code class="bg-white px-1 rounded font-bold">push()</code> กลับลงไปใน Stack</li>
+                            </ul>
+                        </li>
+                        <li>เมื่ออ่านจบ ค่าสุดท้ายใน Stack คือคำตอบ!</li>
+                    </ol>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 overflow-x-auto text-center">
+                    <h5 class="text-sm font-bold text-slate-500 mb-4">ภาพประกอบ 3: การทำงานของ RPN <code class="text-primary bg-amber-50 px-2 py-0.5 rounded">3 10 5 + *</code></h5>
+                    
+                    <div class="flex justify-between items-end w-full max-w-3xl mx-auto gap-2">
+                        <!-- Step 1 -->
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-8 border-2 border-slate-300 rounded-md bg-slate-50 flex items-center justify-center font-bold font-mono">3</div>
+                            <div class="mt-2 font-bold text-sm bg-slate-100 px-2 rounded">อ่าน '3'</div>
+                        </div>
+
+                        <i class="fa-solid fa-arrow-right text-slate-300"></i>
+
+                        <!-- Step 2 -->
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-8 border-2 border-slate-300 rounded-md bg-slate-50 flex items-center justify-center font-bold font-mono border-b-0 rounded-b-none">10</div>
+                            <div class="w-16 h-8 border-2 border-slate-300 rounded-md bg-slate-50 flex items-center justify-center font-bold font-mono">3</div>
+                            <div class="mt-2 font-bold text-sm bg-slate-100 px-2 rounded">อ่าน '10'</div>
+                        </div>
+
+                        <i class="fa-solid fa-arrow-right text-slate-300"></i>
+
+                        <!-- Step 3 -->
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-8 border-2 border-slate-300 rounded-md bg-slate-50 flex items-center justify-center font-bold font-mono border-b-0 rounded-b-none text-rose-500">5</div>
+                            <div class="w-16 h-8 border-2 border-slate-300 rounded-md bg-slate-50 flex items-center justify-center font-bold font-mono border-b-0 rounded-b-none text-blue-500">10</div>
+                            <div class="w-16 h-8 border-2 border-slate-300 rounded-md bg-slate-50 flex items-center justify-center font-bold font-mono">3</div>
+                            <div class="mt-2 font-bold text-sm bg-slate-100 px-2 rounded">อ่าน '5'</div>
+                        </div>
+
+                        <i class="fa-solid fa-arrow-right text-slate-300"></i>
+
+                        <!-- Step 4 -->
+                        <div class="flex flex-col items-center relative">
+                            <div class="absolute -top-10 text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded shadow-sm whitespace-nowrap">10 + 5 = 15</div>
+                            <div class="w-16 h-8 border-2 border-primary rounded-md bg-amber-50 flex items-center justify-center font-bold font-mono border-b-0 rounded-b-none">15</div>
+                            <div class="w-16 h-8 border-2 border-slate-300 rounded-md bg-slate-50 flex items-center justify-center font-bold font-mono">3</div>
+                            <div class="mt-2 font-bold text-sm bg-primary text-white px-2 rounded">เจอ '+'</div>
+                        </div>
+
+                        <i class="fa-solid fa-arrow-right text-slate-300"></i>
+
+                        <!-- Step 5 -->
+                        <div class="flex flex-col items-center relative">
+                            <div class="absolute -top-10 text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded shadow-sm whitespace-nowrap">3 * 15 = 45</div>
+                            <div class="w-16 h-8 border-2 border-emerald-500 rounded-md bg-emerald-50 flex items-center justify-center font-bold font-mono text-emerald-700 shadow-md">45</div>
+                            <div class="mt-2 font-bold text-sm bg-primary text-white px-2 rounded">เจอ '*'</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-panel rounded-2xl p-6 md:p-8 bg-dark text-white shadow-xl relative overflow-hidden border-t-8 border-t-secondary">
+            <div class="absolute -right-4 -bottom-4 text-white/5 text-9xl"><i class="fa-solid fa-brackets-curly"></i></div>
+            
+            <div class="flex items-center gap-3 mb-6 relative z-10">
+                <div class="bg-secondary text-white p-3 rounded-xl shadow-lg"><i class="fa-solid fa-code text-xl"></i></div>
+                <div>
+                    <h3 class="text-2xl font-bold">โจทย์ท้าทาย (LeetCode 20 - Valid Parentheses)</h3>
+                    <p class="text-slate-400 text-sm mt-1">โจทย์ระดับตำนานที่บริษัทใหญ่ๆ ชอบถามเกี่ยวกับการใช้ Stack!</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                <div>
+                    <p class="text-slate-300 mb-4 text-sm leading-relaxed">
+                        <strong>โจทย์:</strong> กำหนด String ที่มีแต่วงเล็บ <code>()</code> <code>{}</code> <code>[]</code> ให้ตรวจสอบว่าวงเล็บถูกปิดอย่างถูกต้องและเป็นลำดับหรือไม่ (เช่น <code>()[]{}</code> คือถูก, แต่ <code>([)]</code> คือผิด)
+                    </p>
+                    <div class="bg-white/10 border border-white/20 p-4 rounded-xl">
+                        <h4 class="font-bold text-primary mb-2"><i class="fa-solid fa-lightbulb"></i> เทคนิคที่ชาญฉลาด (Smart Trick):</h4>
+                        <p class="text-sm text-slate-300">
+                            แทนที่จะ Push วงเล็บเปิดลงไป แล้วตอนเจอวงเล็บปิดค่อยมาเขียน if-else เช็คคู่ 3 กรณี...<br><br>
+                            ให้เรา <strong>Push วงเล็บปิดของคู่นั้นๆ ลง Stack ทันทีที่เจอวงเล็บเปิด!</strong><br>
+                            เช่น เจอ <code>(</code> ให้ push <code>)</code> ลงไป.<br>
+                            เมื่อถึงเวลาที่ต้องเช็ควงเล็บปิด เราแค่ <code>pop()</code> ออกมาดูว่ามันตรงกับตัวที่เรากำลังอ่านอยู่หรือไม่? ถ้าไม่ตรงก็ return false ได้ทันที โค้ดจะสั้นและสะอาดมาก!
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="code-block bg-black/50 border-0 text-sm"><span class="keyword">public boolean</span> <span class="method">isValid</span>(<span class="type">String</span> s) {
+    <span class="type">Stack</span><<span class="type">Character</span>> stack = <span class="keyword">new</span> <span class="type">Stack</span><>();
+    
+    <span class="keyword">for</span> (<span class="type">char</span> c : s.toCharArray()) {
+        <span class="keyword">if</span> (c <span class="operator">==</span> <span class="string">'('</span>) 
+            stack.push(<span class="string">')'</span>);
+        <span class="keyword">else if</span> (c <span class="operator">==</span> <span class="string">'{'</span>) 
+            stack.push(<span class="string">'}'</span>);
+        <span class="keyword">else if</span> (c <span class="operator">==</span> <span class="string">'['</span>) 
+            stack.push(<span class="string">']'</span>);
+        <span class="comment">// เจอวงเล็บปิด เช็คว่า stack ว่างมั้ย หรือตัวที่ pop ออกมาไม่ตรงกับ c</span>
+        <span class="keyword">else if</span> (stack.isEmpty() <span class="operator">||</span> stack.pop() <span class="operator">!=</span> c)
+            <span class="keyword">return false</span>;
+    }
+    <span class="comment">// ถ้าถูกทั้งหมด Stack ต้องไม่เหลืออะไรเลยตอนจบ</span>
+    <span class="keyword">return</span> stack.isEmpty();
+}</div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-16 border-t border-slate-200 py-8 text-center text-slate-400 text-sm">
+        <p>Data Structures & Algorithms - Midterm Preparation Series <i class="fa-solid fa-graduation-cap mx-1"></i></p>
+    </footer>
+
+</body>
+</html>
